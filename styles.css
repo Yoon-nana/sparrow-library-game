@@ -112,6 +112,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .start-content h1 span {
   display: inline-block;
   margin-top: 9px;
+  font-size: 0.76em;
+  white-space: nowrap;
   color: #ffdf65;
   text-shadow: 0 4px 0 rgba(66, 70, 33, 0.32), 0 9px 28px rgba(0,0,0,0.3);
 }
@@ -194,6 +196,15 @@ button { -webkit-tap-highlight-color: transparent; }
 .secondary-button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #9a6927; }
 
 .primary-button:disabled { cursor: wait; filter: grayscale(0.5); opacity: 0.7; box-shadow: 0 4px 0 #8c8067; }
+
+.library-link {
+  display: inline-flex;
+  flex: 1 1 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
 
 .quick-guide {
   margin: 18px 0 0;
