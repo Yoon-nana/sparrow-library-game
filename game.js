@@ -18,12 +18,12 @@
       duration: 15,
     },
     {
-      id: "rocks",
+      id: "landslide",
       icon: "🪨",
-      name: "등산객의 돌",
-      mission: "등산객이 던지는 돌을 피하세요!",
-      description: "바닥에 먼저 나타나는 주황색 궤적을 보고 돌이 날아올 길을 예상하세요.",
-      tip: "돌은 짹짹이가 있던 곳을 향해 날아와요. 궤적이 보이면 옆으로 이동하세요.",
+      name: "산길의 산사태",
+      mission: "산비탈에서 떨어지는 낙석을 피하세요!",
+      description: "산사태로 돌이 굴러 떨어져요. 바닥의 주황색 경고 원을 보고 안전한 곳으로 이동하세요.",
+      tip: "경고 원과 아래쪽 화살표가 나타나면 옆으로 이동하세요. 돌이 떨어지기 전에 피할 시간이 있어요.",
       background: "assets/02-hiker-road.png",
       duration: 16,
     },
@@ -60,7 +60,7 @@
     {
       id: "library",
       icon: "📚",
-      name: "정선도서관 도착",
+      name: "정선교육도서관 도착",
       mission: "빛나는 도서관 입구까지 날아가세요!",
       description: "마지막이에요. 황금빛으로 반짝이는 입구에 도착하면 모험 성공입니다.",
       tip: "위험은 모두 지나갔어요. 화면 가운데의 빛나는 입구로 이동하세요.",
@@ -554,10 +554,10 @@
   function updateStage(dt, stage) {
     if (stage.id === "bear") {
       updateBear(dt);
-    } else if (stage.id === "rocks") {
+    } else if (stage.id === "landslide") {
       if (state.spawnTimer <= 0) {
-        spawnRock();
-        state.spawnTimer = Math.max(0.64, 1.3 - state.stageTime * 0.022);
+        spawnLandslideRock();
+        state.spawnTimer = Math.max(0.78, 1.42 - state.stageTime * 0.02);
       }
     } else if (stage.id === "crayfish") {
       if (state.spawnTimer <= 0) {
@@ -606,16 +606,19 @@
     }
   }
 
-  function spawnRock() {
-    const start = { x: random(1130, 1260), y: random(178, 278) };
+  function spawnLandslideRock() {
     const target = {
-      x: clamp(state.player.x + state.player.vx * 0.38, BOUNDS.left, BOUNDS.right),
-      y: clamp(state.player.y + state.player.vy * 0.38, BOUNDS.top, BOUNDS.bottom),
+      x: clamp(state.player.x + state.player.vx * 0.38 + random(-70, 70), BOUNDS.left + 30, BOUNDS.right - 30),
+      y: clamp(state.player.y + state.player.vy * 0.38 + random(-25, 45), BOUNDS.top + 20, BOUNDS.bottom - 20),
+    };
+    const start = {
+      x: clamp(target.x + random(-150, 150), BOUNDS.left + 20, BOUNDS.right - 20),
+      y: BOUNDS.top - random(90, 145),
     };
     const angle = Math.atan2(target.y - start.y, target.x - start.x);
-    const speed = random(330, 410);
+    const speed = random(290, 355);
     state.hazards.push({
-      type: "rock",
+      type: "landslideRock",
       x: start.x,
       y: start.y,
       targetX: target.x,
@@ -625,7 +628,7 @@
       radius: random(19, 26),
       rotation: random(0, Math.PI * 2),
       spin: random(-4, 4),
-      telegraph: 0.52,
+      telegraph: 0.82,
       life: 5,
     });
     playTone(260, 0.05, "triangle", 0.018);
@@ -818,7 +821,7 @@
       } else {
         hazard.x += hazard.vx * dt;
         hazard.y += hazard.vy * dt;
-        if (hazard.type === "rock" || hazard.type === "caveRock") hazard.rotation += hazard.spin * dt;
+        if (hazard.type === "landslideRock" || hazard.type === "caveRock") hazard.rotation += hazard.spin * dt;
         if (hazard.type === "claw") {
           hazard.phase += dt * 5;
           hazard.y += Math.sin(hazard.phase) * 32 * dt;
@@ -835,7 +838,7 @@
         const verticalHit = Math.abs(state.player.y - hazard.y) < hitRadius + HERO_RADIUS;
         if (horizontalHit && verticalHit) {
           const messages = {
-            rock: "날아온 돌에 부딪혔어요!",
+            landslideRock: "떨어지는 낙석을 미처 피하지 못했어요!",
             claw: "대왕가재의 집게가 스쳤어요!",
             wave: "거센 물결에 휩쓸렸어요!",
             swarm: "개미 떼와 부딪혔어요!",
@@ -1010,8 +1013,8 @@
     const stage = STAGES[state.stageIndex];
     if (stage.id === "bear") {
       drawBear();
-    } else if (stage.id === "rocks") {
-      drawHiker();
+    } else if (stage.id === "landslide") {
+      drawLandslideWarning();
     } else if (stage.id === "crayfish") {
       drawCrayfish();
     } else if (stage.id === "ants") {
@@ -1026,63 +1029,117 @@
   function drawBear() {
     const bear = state.bear;
     ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
     ctx.translate(bear.x, bear.y);
     const bob = Math.sin(state.stageTime * 9) * 5;
+    const stride = Math.sin(state.stageTime * 12) * 5;
     ctx.fillStyle = "rgba(17,33,25,0.24)";
     ctx.beginPath();
     ctx.ellipse(0, 46, 53, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.font = '96px "Segoe UI Emoji"';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("🐻", 0, bob - 4);
+    ctx.translate(0, bob);
+
+    ctx.fillStyle = "#4b2a19";
+    ctx.beginPath(); ctx.ellipse(-25, 40 + stride, 18, 13, -0.15, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(25, 40 - stride, 18, 13, 0.15, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = "#684027";
+    ctx.beginPath(); ctx.ellipse(0, 10, 45, 47, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#4b2a19";
+    ctx.lineWidth = 17;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-33, -1); ctx.lineTo(-47, 22 + stride);
+    ctx.moveTo(33, -1); ctx.lineTo(47, 22 - stride);
+    ctx.stroke();
+
+    ctx.fillStyle = "#4b2a19";
+    ctx.beginPath(); ctx.arc(-30, -55, 17, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(30, -55, 17, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#9b7049";
+    ctx.beginPath(); ctx.arc(-30, -55, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(30, -55, 9, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = "#74472c";
+    ctx.beginPath(); ctx.ellipse(0, -28, 45, 40, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#c99b67";
+    ctx.beginPath(); ctx.ellipse(0, -17, 25, 20, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#21150f";
+    ctx.beginPath(); ctx.arc(-16, -34, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(16, -34, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, -23, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#382116";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -17); ctx.quadraticCurveTo(-7, -10, -13, -14);
+    ctx.moveTo(0, -17); ctx.quadraticCurveTo(7, -10, 13, -14);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.translate(bear.x, bear.y);
     ctx.fillStyle = "rgba(255,255,255,0.92)";
-    roundRect(ctx, -47, -72, 94, 27, 13);
+    roundRect(ctx, -47, -101, 94, 27, 13);
     ctx.fill();
     ctx.fillStyle = "#6b3f22";
     ctx.font = '900 14px "Malgun Gothic"';
-    ctx.fillText("추격 중!", 0, -58);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("추격 중!", 0, -87);
     ctx.restore();
   }
 
-  function drawHiker() {
-    const x = 1192;
-    const y = 236;
+  function drawLandslideWarning() {
+    const x = 1182;
+    const y = 238;
+    const rumble = Math.sin(state.stageTime * 15) * 2;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.globalAlpha = 1;
+    ctx.translate(x + rumble, y);
     ctx.fillStyle = "rgba(25,39,31,0.22)";
     ctx.beginPath();
-    ctx.ellipse(0, 61, 48, 13, 0, 0, Math.PI * 2);
+    ctx.ellipse(4, 61, 86, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#4a3325";
-    ctx.lineWidth = 12;
-    ctx.lineCap = "round";
+
+    const boulders = [
+      { x: 42, y: 26, r: 35 },
+      { x: -8, y: 37, r: 30 },
+      { x: 70, y: 48, r: 24 },
+      { x: -48, y: 49, r: 22 },
+    ];
+    boulders.forEach((boulder, index) => {
+      ctx.fillStyle = index % 2 === 0 ? "#666760" : "#7a766b";
+      ctx.strokeStyle = "#42443f";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(boulder.x, boulder.y, boulder.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    ctx.strokeStyle = "#704525";
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(-76, 23); ctx.lineTo(-76, 91); ctx.stroke();
+    ctx.fillStyle = "#f3c94d";
+    ctx.strokeStyle = "#68472a";
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(-12, 32); ctx.lineTo(-28, 60);
-    ctx.moveTo(13, 33); ctx.lineTo(31, 60);
-    ctx.stroke();
-    ctx.fillStyle = "#e96f3d";
-    roundRect(ctx, -30, -25, 62, 69, 19);
-    ctx.fill();
-    ctx.fillStyle = "#315b47";
-    roundRect(ctx, -47, -19, 27, 52, 10);
-    ctx.fill();
-    ctx.fillStyle = "#f3bd83";
-    ctx.beginPath(); ctx.arc(0, -47, 25, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#315b47";
-    ctx.beginPath(); ctx.arc(0, -53, 27, Math.PI, 0); ctx.fill();
-    ctx.fillRect(-32, -55, 45, 8);
-    ctx.strokeStyle = "#f3bd83";
-    ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.moveTo(25, -7); ctx.lineTo(51, 8); ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    roundRect(ctx, -61, -94, 122, 27, 13);
-    ctx.fill();
-    ctx.fillStyle = "#744628";
-    ctx.font = '900 14px "Malgun Gothic"';
+    ctx.moveTo(-76, -44); ctx.lineTo(-119, 28); ctx.lineTo(-33, 28); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#5a3a25";
+    ctx.font = '900 42px "Malgun Gothic"';
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("등산객", 0, -80);
+    ctx.fillText("!", -76, 2);
+
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    roundRect(ctx, -132, -84, 112, 28, 14);
+    ctx.fill();
+    ctx.fillStyle = "#664325";
+    ctx.font = '900 14px "Malgun Gothic"';
+    ctx.fillText("낙석 주의", -76, -70);
     ctx.restore();
   }
 
@@ -1117,7 +1174,7 @@
     ctx.font = '900 18px "Malgun Gothic"';
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("정선도서관  →", 0, -5);
+    ctx.fillText("정선교육도서관  →", 0, -5);
     ctx.restore();
   }
 
@@ -1188,7 +1245,7 @@
 
   function drawHazards() {
     state.hazards.forEach((hazard) => {
-      if (hazard.type === "rock" || hazard.type === "caveRock") drawRock(hazard);
+      if (hazard.type === "landslideRock" || hazard.type === "caveRock") drawRock(hazard);
       if (hazard.type === "claw") drawClaw(hazard);
       if (hazard.type === "wave") drawWave(hazard);
       if (hazard.type === "swarm") drawSwarm(hazard);
@@ -1201,12 +1258,26 @@
       ctx.save();
       const alpha = 0.5 + Math.sin(rock.telegraph * 24) * 0.25;
       ctx.strokeStyle = `rgba(247, 124, 55, ${alpha})`;
-      ctx.lineWidth = 8;
-      ctx.setLineDash([18, 14]);
-      ctx.beginPath();
-      ctx.moveTo(rock.x, rock.y);
-      ctx.lineTo(rock.targetX, rock.targetY);
-      ctx.stroke();
+      ctx.lineWidth = rock.type === "landslideRock" ? 7 : 8;
+      ctx.setLineDash(rock.type === "landslideRock" ? [12, 9] : [18, 14]);
+      if (rock.type === "landslideRock") {
+        ctx.beginPath(); ctx.arc(rock.targetX, rock.targetY, 46, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineWidth = 7;
+        for (let index = 0; index < 3; index += 1) {
+          const arrowY = rock.targetY - 125 + index * 32;
+          ctx.beginPath();
+          ctx.moveTo(rock.targetX - 17, arrowY - 10);
+          ctx.lineTo(rock.targetX, arrowY + 8);
+          ctx.lineTo(rock.targetX + 17, arrowY - 10);
+          ctx.stroke();
+        }
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(rock.x, rock.y);
+        ctx.lineTo(rock.targetX, rock.targetY);
+        ctx.stroke();
+      }
       ctx.fillStyle = `rgba(247, 124, 55, ${alpha * 0.55})`;
       ctx.beginPath(); ctx.arc(rock.targetX, rock.targetY, 40, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
